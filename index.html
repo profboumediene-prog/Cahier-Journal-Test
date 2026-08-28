@@ -494,7 +494,7 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
     <p>Connectez-vous pour déverrouiller et synchroniser votre espace enseignant.</p>
     <input type="email" id="email-input" class="auth-input" placeholder="Votre adresse email" />
     <input type="password" id="pin-code" class="auth-input" placeholder="Mot de passe ou Code PIN" />
-    <div id="auth-error-msg" class="auth-error">Adresse e-mail ou code d'accès incorrect.</div>
+    <div id="auth-error-msg" class="auth-error"></div>
     <button class="btn primary" style="width:100%; justify-content:center; margin-top:8px;" onclick="validateAccess()">Connexion</button>
   </div>
 </div>
@@ -585,14 +585,20 @@ const auth = firebase.auth();
 
 const DEFAULT_PIN = "1234";
 
-function showAuthError() {
+function showAuthError(message) {
   const errEl = document.getElementById('auth-error-msg');
-  if (errEl) errEl.style.display = 'block';
+  if (errEl) {
+    errEl.textContent = message;
+    errEl.style.display = 'block';
+  }
 }
 
 function hideAuthError() {
   const errEl = document.getElementById('auth-error-msg');
-  if (errEl) errEl.style.display = 'none';
+  if (errEl) {
+    errEl.style.display = 'none';
+    errEl.textContent = '';
+  }
 }
 
 function validateAccess() {
@@ -600,24 +606,20 @@ function validateAccess() {
   const email = document.getElementById('email-input').value.trim();
   const password = document.getElementById('pin-code').value.trim();
   
-  if (!password) {
-    showAuthError();
+  if (!email || !password) {
+    showAuthError("Veuillez renseigner votre adresse e-mail et votre code d'accès.");
     return;
   }
 
-  if (email) {
-    auth.signInWithEmailAndPassword(email, password)
-      .then((userCredential) => {
-        document.getElementById('auth-screen').style.display = 'none';
-        toast('Connexion réussie', 'ok');
-        syncWithFirebase(userCredential.user.uid);
-      })
-      .catch((error) => {
-        checkPinFallback(password);
-      });
-  } else {
-    checkPinFallback(password);
-  }
+  auth.signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      document.getElementById('auth-screen').style.display = 'none';
+      toast('Connexion réussie', 'ok');
+      syncWithFirebase(userCredential.user.uid);
+    })
+    .catch((error) => {
+      checkPinFallback(password);
+    });
 }
 
 function checkPinFallback(pinInput) {
@@ -628,14 +630,14 @@ function checkPinFallback(pinInput) {
       toast('Accès autorisé', 'ok');
       syncWithFirebase('global_user');
     } else {
-      showAuthError();
+      showAuthError("Adresse e-mail ou code d'accès incorrect.");
     }
   }).catch(() => {
     if (pinInput === DEFAULT_PIN) {
       document.getElementById('auth-screen').style.display = 'none';
       toast('Accès hors-ligne autorisé', 'ok');
     } else {
-      showAuthError();
+      showAuthError("Adresse e-mail ou code d'accès incorrect.");
     }
   });
 }
