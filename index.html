@@ -609,63 +609,39 @@ function validateAccess() {
   const email = emailInput ? emailInput.value.trim() : '';
   const password = pinInput ? pinInput.value.trim() : '';
   
-  // SI email vide OU code vide
+  // 1, 2, 3. Vérification des champs vides
   if (!email || !password) {
-    showAuthError("Veuillez renseigner les champs.");
+    showAuthError("Veuillez remplir tous les champs.");
     return;
   }
 
-  // Tenter l'authentification avec un try...catch global pour éviter tout blocage
-  try {
-    auth.signInWithEmailAndPassword(email, password)
-      .then((userCredential) => {
-        // Succès : les deux identifiants sont corrects
-        hideAuthError();
-        document.getElementById('auth-screen').style.display = 'none';
-        toast('Connexion réussie', 'ok');
-        syncWithFirebase(userCredential.user.uid);
-      })
-      .catch((error) => {
-        // Echec de l'authentification classique (mauvais mot de passe ou email non trouvé)
-        checkPinFallback(password);
-      });
-  } catch (error) {
-    // Intercepte les erreurs synchrones levées par Firebase (ex: "ffffffff" n'est pas un email)
-    checkPinFallback(password);
-  }
+  // 4, 5, 6, 7. Logique transférée du CODE 1
+  auth.signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      // Succès
+      hideAuthError();
+      document.getElementById('auth-screen').style.display = 'none';
+      toast('Connexion réussie', 'ok');
+      syncWithFirebase(userCredential.user.uid);
+    })
+    .catch((error) => {
+      // Tenter une vérification fallback si nécessaire, puis afficher l'erreur uniforme
+      checkPinFallback(password);
+    });
 }
 
 function checkPinFallback(pinInput) {
-  try {
-    const cleanPin = String(pinInput || '').trim();
-    const cleanDefaultPin = String(DEFAULT_PIN).trim();
+  const cleanPin = String(pinInput || '').trim();
+  const cleanDefaultPin = String(DEFAULT_PIN).trim();
 
-    db.ref('app_access_code').once('value')
-      .then(snapshot => {
-        const dbPin = snapshot.exists() ? String(snapshot.val()).trim() : cleanDefaultPin;
-        // Vérification stricte du PIN
-        if (cleanPin === dbPin || cleanPin === cleanDefaultPin) {
-          hideAuthError();
-          document.getElementById('auth-screen').style.display = 'none';
-          toast('Accès autorisé', 'ok');
-          syncWithFirebase('global_user');
-        } else {
-          showAuthError("Adresse e-mail ou code d'accès incorrect.");
-        }
-      })
-      .catch(() => {
-        // En cas d'impossibilité de lire la base de données (règles de sécurité ou hors-ligne)
-        if (cleanPin === cleanDefaultPin) {
-          hideAuthError();
-          document.getElementById('auth-screen').style.display = 'none';
-          toast('Accès hors-ligne autorisé', 'ok');
-          syncWithFirebase('global_user');
-        } else {
-          showAuthError("Adresse e-mail ou code d'accès incorrect.");
-        }
-      });
-  } catch (err) {
-    // Sécurité ultime au cas où une variable serait indéfinie
+  // Tentative hors-ligne si le serveur n'est pas joignable
+  if (cleanPin === cleanDefaultPin) {
+    hideAuthError();
+    document.getElementById('auth-screen').style.display = 'none';
+    toast('Accès autorisé', 'ok');
+    syncWithFirebase('global_user');
+  } else {
+    // E-mail incorrect, code incorrect ou les deux incorrects
     showAuthError("Adresse e-mail ou code d'accès incorrect.");
   }
 }
