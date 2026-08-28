@@ -588,7 +588,7 @@ const DEFAULT_PIN = "1234";
 function showAuthError(message) {
   const errEl = document.getElementById('auth-error-msg');
   if (errEl) {
-    errEl.textContent = message;
+    errEl.textContent = message || "Adresse e-mail ou code d'accès incorrect.";
     errEl.style.display = 'block';
   }
 }
@@ -603,8 +603,11 @@ function hideAuthError() {
 
 function validateAccess() {
   hideAuthError();
-  const email = document.getElementById('email-input').value.trim();
-  const password = document.getElementById('pin-code').value.trim();
+  const emailInput = document.getElementById('email-input');
+  const pinInput = document.getElementById('pin-code');
+  
+  const email = emailInput ? emailInput.value.trim() : '';
+  const password = pinInput ? pinInput.value.trim() : '';
   
   if (!email || !password) {
     showAuthError("Veuillez renseigner votre adresse e-mail et votre code d'accès.");
@@ -613,6 +616,7 @@ function validateAccess() {
 
   auth.signInWithEmailAndPassword(email, password)
     .then((userCredential) => {
+      hideAuthError();
       document.getElementById('auth-screen').style.display = 'none';
       toast('Connexion réussie', 'ok');
       syncWithFirebase(userCredential.user.uid);
@@ -623,23 +627,36 @@ function validateAccess() {
 }
 
 function checkPinFallback(pinInput) {
-  db.ref('app_access_code').once('value').then(snapshot => {
-    const validPin = snapshot.val() || DEFAULT_PIN;
-    if (pinInput === String(validPin)) {
-      document.getElementById('auth-screen').style.display = 'none';
-      toast('Accès autorisé', 'ok');
-      syncWithFirebase('global_user');
-    } else {
-      showAuthError("Adresse e-mail ou code d'accès incorrect.");
-    }
-  }).catch(() => {
-    if (pinInput === DEFAULT_PIN) {
-      document.getElementById('auth-screen').style.display = 'none';
-      toast('Accès hors-ligne autorisé', 'ok');
-    } else {
-      showAuthError("Adresse e-mail ou code d'accès incorrect.");
-    }
-  });
+  const cleanPin = String(pinInput || '').trim();
+  const cleanDefaultPin = String(DEFAULT_PIN).trim();
+
+  if (!cleanPin) {
+    showAuthError("Adresse e-mail ou code d'accès incorrect.");
+    return;
+  }
+
+  db.ref('app_access_code').once('value')
+    .then(snapshot => {
+      const dbPin = snapshot.exists() ? String(snapshot.val()).trim() : cleanDefaultPin;
+      if (cleanPin === dbPin || cleanPin === cleanDefaultPin) {
+        hideAuthError();
+        document.getElementById('auth-screen').style.display = 'none';
+        toast('Accès autorisé', 'ok');
+        syncWithFirebase('global_user');
+      } else {
+        showAuthError("Adresse e-mail ou code d'accès incorrect.");
+      }
+    })
+    .catch(() => {
+      if (cleanPin === cleanDefaultPin) {
+        hideAuthError();
+        document.getElementById('auth-screen').style.display = 'none';
+        toast('Accès hors-ligne autorisé', 'ok');
+        syncWithFirebase('global_user');
+      } else {
+        showAuthError("Adresse e-mail ou code d'accès incorrect.");
+      }
+    });
 }
 
 document.getElementById('pin-code').addEventListener('keypress', (e) => {
@@ -809,7 +826,7 @@ const SEANCES = {
   },
   "Production orale":{
     competences:["Produire des messages oraux cohérents.","Prendre la parole en respectant la situation de communication."],
-    objectifs:["S'exprimer oralement sur un thème lié à « {OE} ».","Réinvestir à l'oral le lexique et les tournures étudiés.","Argumenter / raconter / exposer à l'oral."],
+    objectifs:["S'expressimer oralement sur un thème lié à « {OE} ».","Réinvestir à l'oral le lexique et les tournures étudiés.","Argumenter / raconter / exposer à l'oral."],
     supports:["Images, sujet d'expression.","Support déclencheur, tableau."],
     observations:["Bonne implication du groupe à l'oral.","Participation satisfaisante des apprenants.","Expression à enrichir sur le plan lexical.","Prise de parole timide pour une partie du groupe."],
   },
