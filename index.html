@@ -289,6 +289,10 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
   color: var(--ink);
   font-family: var(--ff);
   border-top: 6px solid var(--rose-300);
+  margin-bottom: 30px;
+}
+.doc-page:first-child {
+  margin-top: 0;
 }
 
 .doc-header {
@@ -448,7 +452,13 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
     box-shadow: none !important;
     border: none !important;
     padding: 0 !important;
-    margin: 0 !important;
+    margin: 0 0 0 0 !important;
+    page-break-after: always;
+    break-after: page;
+  }
+  .doc-page:last-child {
+    page-break-after: avoid;
+    break-after: avoid;
   }
   
   * {
@@ -609,23 +619,19 @@ function validateAccess() {
   const email = emailInput ? emailInput.value.trim() : '';
   const password = pinInput ? pinInput.value.trim() : '';
   
-  // 1, 2, 3. Vérification des champs vides
   if (!email || !password) {
     showAuthError("Veuillez remplir tous les champs.");
     return;
   }
 
-  // 4, 5, 6, 7. Logique transférée du CODE 1
   auth.signInWithEmailAndPassword(email, password)
     .then((userCredential) => {
-      // Succès
       hideAuthError();
       document.getElementById('auth-screen').style.display = 'none';
       toast('Connexion réussie', 'ok');
       syncWithFirebase(userCredential.user.uid);
     })
     .catch((error) => {
-      // Tenter une vérification fallback si nécessaire, puis afficher l'erreur uniforme
       checkPinFallback(password);
     });
 }
@@ -634,14 +640,12 @@ function checkPinFallback(pinInput) {
   const cleanPin = String(pinInput || '').trim();
   const cleanDefaultPin = String(DEFAULT_PIN).trim();
 
-  // Tentative hors-ligne si le serveur n'est pas joignable
   if (cleanPin === cleanDefaultPin) {
     hideAuthError();
     document.getElementById('auth-screen').style.display = 'none';
     toast('Accès autorisé', 'ok');
     syncWithFirebase('global_user');
   } else {
-    // E-mail incorrect, code incorrect ou les deux incorrects
     showAuthError("Adresse e-mail ou code d'accès incorrect.");
   }
 }
@@ -907,7 +911,7 @@ function defaultState(){return {schoolYear:'2026 / 2027',days:[makeDay(todayISO(
 
 let state;
 try{state=JSON.parse(localStorage.getItem(KEY))||defaultState();}catch(e){state=defaultState();}
-if(!state.days||!state.days.length) state.days=[makeDay(todayISO())];
+if(!state.days) state.days=[];
 
 let saveTimer=null;
 function markDirty(){setStatus('dirty');clearTimeout(saveTimer);saveTimer=setTimeout(persist,600);}
@@ -1026,7 +1030,7 @@ function rowHTML(d,r){
     <td class="col-tools" data-label="">
       <span class="row-tools">
         <button class="tool gear" title="Assistant / détails" data-action="details" ${da}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 3.6 15a1.65 1.65 0 0 0-1.51-1H2a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 3.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 16 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06A1.65 1.65 0 0 0 8 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 16 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
         <button class="tool" title="Supprimer la ligne" data-action="del-row" ${da}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
@@ -1085,7 +1089,7 @@ function dayHTML(d){
 
 function render(){
   $('#year').value=state.schoolYear;
-  if(!state.days.length){
+  if(!state.days || !state.days.length){
     daysEl.innerHTML=`<div class="empty"><h2>Bonjour !</h2><p>Aucune journée pour l'instant. Créez-en une pour commencer.</p>
       <p style="margin-top:16px"><button class="btn primary" data-action="add-day"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Créer une journée</button></p></div>`;
     return;
@@ -1104,15 +1108,21 @@ function formatDayDate(isoDate) {
 const val = (v) => v ? esc(v) : '<span class="doc-empty-val">..................................</span>';
 
 function renderPreview(daysToRender) {
+  let validDays = (daysToRender || []).filter(d => d && d.id);
+  if (!validDays.length) {
+    toast('Aucune journée à afficher', 'info');
+    return;
+  }
+
   let html = '';
-  daysToRender.forEach(d => {
+  validDays.forEach(d => {
     let dateStr = formatDayDate(d.date);
     dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
     
     let sortedRows = [...d.rows].sort((a,b) => (a.heure||'').localeCompare(b.heure||''));
 
     let rowsHtml = sortedRows.map(r => {
-      let det = r.details;
+      let det = r.details || {};
       let classe = classeLabel(r.classe) || classeLabel(det.filiere);
       
       return `
@@ -1269,6 +1279,7 @@ document.addEventListener('click',e=>{
   }
 });
 function addDay(){
+  if(!state.days) state.days = [];
   const last=state.days[state.days.length-1];const base=last?last.date:todayISO();
   const nx=new Date(base+'T00:00:00');nx.setDate(nx.getDate()+1);
   state.days.push(makeDay(nx.toISOString().slice(0,10)));render();persist();
