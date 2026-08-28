@@ -84,6 +84,20 @@ body{
 }
 .auth-input:focus { border-color: var(--rose-500); box-shadow: 0 0 0 3px var(--rose-100); background: #fff; }
 
+/* MESSAGE D'ERREUR ROUGE */
+.auth-error {
+  display: none;
+  color: #c53030;
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
 /* Décor très discret */
 .decor{position:fixed;pointer-events:none;z-index:0;opacity:.30;}
 .decor.tl{top:-6px;left:-4px;width:118px;}
@@ -480,6 +494,7 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
     <p>Connectez-vous pour déverrouiller et synchroniser votre espace enseignant.</p>
     <input type="email" id="email-input" class="auth-input" placeholder="Votre adresse email" />
     <input type="password" id="pin-code" class="auth-input" placeholder="Mot de passe ou Code PIN" />
+    <div id="auth-error-msg" class="auth-error">Adresse e-mail ou code d'accès incorrect.</div>
     <button class="btn primary" style="width:100%; justify-content:center; margin-top:8px;" onclick="validateAccess()">Connexion</button>
   </div>
 </div>
@@ -570,12 +585,23 @@ const auth = firebase.auth();
 
 const DEFAULT_PIN = "1234";
 
+function showAuthError() {
+  const errEl = document.getElementById('auth-error-msg');
+  if (errEl) errEl.style.display = 'block';
+}
+
+function hideAuthError() {
+  const errEl = document.getElementById('auth-error-msg');
+  if (errEl) errEl.style.display = 'none';
+}
+
 function validateAccess() {
+  hideAuthError();
   const email = document.getElementById('email-input').value.trim();
   const password = document.getElementById('pin-code').value.trim();
   
   if (!password) {
-    toast('Veuillez entrer votre mot de passe ou code PIN', 'info');
+    showAuthError();
     return;
   }
 
@@ -602,19 +628,22 @@ function checkPinFallback(pinInput) {
       toast('Accès autorisé', 'ok');
       syncWithFirebase('global_user');
     } else {
-      toast('Identifiants ou Code PIN incorrects', 'info');
+      showAuthError();
     }
   }).catch(() => {
     if (pinInput === DEFAULT_PIN) {
       document.getElementById('auth-screen').style.display = 'none';
       toast('Accès hors-ligne autorisé', 'ok');
     } else {
-      toast('Code PIN incorrect', 'info');
+      showAuthError();
     }
   });
 }
 
 document.getElementById('pin-code').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') validateAccess();
+});
+document.getElementById('email-input').addEventListener('keypress', (e) => {
   if (e.key === 'Enter') validateAccess();
 });
 
