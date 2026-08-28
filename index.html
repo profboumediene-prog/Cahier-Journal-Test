@@ -478,7 +478,7 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
   <div class="auth-card">
     <h2>Cahier Journal</h2>
     <p>Connectez-vous pour déverrouiller et synchroniser votre espace enseignant.</p>
-    <input type="email" id="email-input" class="auth-input" placeholder="Votre adresse email (ex: prof@fle.dz)" />
+    <input type="email" id="email-input" class="auth-input" placeholder="Votre adresse email" />
     <input type="password" id="pin-code" class="auth-input" placeholder="Mot de passe ou Code PIN" />
     <button class="btn primary" style="width:100%; justify-content:center; margin-top:8px;" onclick="validateAccess()">Connexion</button>
   </div>
@@ -552,16 +552,16 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
 
 <script>
 /* ============================================================
-   1. CONFIGURATION FIREBASE & AUTHENTIFICATION (EMAIL + PIN)
+   1. CONFIGURATION FIREBASE & AUTHENTIFICATION (cahier-journal-26-27)
    ============================================================ */
 const firebaseConfig = {
-  apiKey: "AIzaSyDummyKeyReplaceIfNecessary123",
-  authDomain: "cahier-journal-fle.firebaseapp.com",
-  databaseURL: "https://cahier-journal-fle-default-rtdb.firebaseio.com",
-  projectId: "cahier-journal-fle",
-  storageBucket: "cahier-journal-fle.appspot.com",
-  messagingSenderId: "1234567890",
-  appId: "1:1234567890:web:abcdef123456"
+  apiKey: "AIzaSyCEs9ECiK8B5sBa5t-8ige1UipR2UeV_T0",
+  authDomain: "cahier-journal-26-27.firebaseapp.com",
+  projectId: "cahier-journal-26-27",
+  storageBucket: "cahier-journal-26-27.firebasestorage.app",
+  messagingSenderId: "640606456487",
+  appId: "1:640606456487:web:8444d7761c7cc15519a982",
+  measurementId: "G-QVFVEP32NS"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -579,7 +579,6 @@ function validateAccess() {
     return;
   }
 
-  // Tenter l'authentification Firebase Auth si un email est saisi
   if (email) {
     auth.signInWithEmailAndPassword(email, password)
       .then((userCredential) => {
@@ -588,7 +587,6 @@ function validateAccess() {
         syncWithFirebase(userCredential.user.uid);
       })
       .catch((error) => {
-        // En cas d'échec ou d'usage hors-ligne, vérifier le PIN dans le Realtime DB ou la clé par défaut
         checkPinFallback(password);
       });
   } else {
