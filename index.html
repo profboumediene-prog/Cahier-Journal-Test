@@ -7,6 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Parisienne&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+
+<!-- SDKs Firebase Compat v9+ -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <style>
 /* ============================================================
    CAHIER JOURNAL — FLE  ·  Assistant de préparation
@@ -14,22 +20,18 @@
    ============================================================ */
 
 :root{
-  /* Textes — FONCÉS, haute lisibilité écran + impression */
   --ink:#20263A;         
   --ink-2:#3B455C;       
   --muted:#697388;       
   --placeholder:#9AA3B4;
 
-  /* Roses (accents & titres) */
   --rose-700:#B23A5D;  --rose-600:#C24E70;
   --rose-500:#D66A88;  --rose-300:#E9A9BD;  --rose-200:#F2CBD8;
   --rose-100:#FAE6EC;  --rose-50:#FDF4F7;
 
-  /* Bleus (libellés, en-têtes) */
   --blue-700:#284A6E;  --blue-600:#345B82;  --blue-300:#8FB2D6;
   --blue-100:#DCE8F5;  --blue-50:#F1F6FC;
 
-  /* Structure & champs */
   --page:#FBF7F9;
   --card:#FFFFFF;
   --line:#E5D7DE;        
@@ -54,6 +56,33 @@ body{
   font-family:var(--ff);color:var(--ink);background:var(--page);
   line-height:1.5;-webkit-font-smoothing:antialiased;font-weight:500;
 }
+
+/* ÉCRAN D'AUTHENTIFICATION AVEC EMAIL */
+#auth-screen {
+  position: fixed; inset: 0; z-index: 999;
+  background: var(--page);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.auth-card {
+  background: #fff; border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 35px 30px;
+  max-width: 420px; width: 100%; text-align: center;
+  box-shadow: var(--shadow-doc);
+  border-top: 6px solid var(--rose-500);
+}
+.auth-card h2 {
+  font-family: var(--ff-script); font-size: 38px; color: var(--blue-700);
+  margin: 0 0 8px; font-weight: 400;
+}
+.auth-card p { font-size: 13.5px; color: var(--ink-2); margin-bottom: 22px; }
+.auth-input {
+  width: 100%; font-size: 15px; text-align: left;
+  padding: 12px 14px; border: 1px solid var(--field-bd); border-radius: var(--radius-sm);
+  outline: none; font-family: var(--ff); font-weight: 600; color: var(--ink);
+  margin-bottom: 12px; transition: .2s; background: var(--field-bg);
+}
+.auth-input:focus { border-color: var(--rose-500); box-shadow: 0 0 0 3px var(--rose-100); background: #fff; }
 
 /* Décor très discret */
 .decor{position:fixed;pointer-events:none;z-index:0;opacity:.30;}
@@ -248,7 +277,6 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
   border-top: 6px solid var(--rose-300);
 }
 
-/* EN-TÊTE CALLIGRAPHIQUE ET ÉLÉGANT */
 .doc-header {
   text-align: center;
   margin-bottom: 35px;
@@ -303,7 +331,6 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
   color: var(--ink);
   font-family: var(--ff);
 }
-/* Fin des styles du nouvel en-tête */
 
 .doc-session{
   border: 1px solid var(--line);
@@ -393,12 +420,9 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
   gap: 8px;
 }
 
-/* ============================================================
-   IMPRESSION — A4
-   ============================================================ */
 @media print{
   body { background: #fff; }
-  .decor, .app, .preview-toolbar, .toast, dialog { display: none !important; }
+  .decor, .app, .preview-toolbar, .toast, dialog, #auth-screen { display: none !important; }
   
   #preview-mode {
     display: block !important;
@@ -430,7 +454,6 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
   @page { size: A4; margin: 15mm; }
 }
 
-/* ---------- Responsive ---------- */
 @media (max-width:780px){
   table.grid thead{display:none;}
   table.grid,table.grid tbody,table.grid tr,table.grid td{display:block;width:100%;}
@@ -449,6 +472,17 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
 </style>
 </head>
 <body>
+
+<!-- ÉCRAN D'AUTHENTIFICATION AVEC EMAIL ET MOT DE PASSE -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <h2>Cahier Journal</h2>
+    <p>Connectez-vous pour déverrouiller et synchroniser votre espace enseignant.</p>
+    <input type="email" id="email-input" class="auth-input" placeholder="Votre adresse email (ex: prof@fle.dz)" />
+    <input type="password" id="pin-code" class="auth-input" placeholder="Mot de passe ou Code PIN" />
+    <button class="btn primary" style="width:100%; justify-content:center; margin-top:8px;" onclick="validateAccess()">Connexion</button>
+  </div>
+</div>
 
 <svg class="decor tl" viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="#E9A9BD" stroke-width="2" stroke-linecap="round"><path d="M20 36c0-9 7-16 16-16s16 7 16 16" stroke="#8FB2D6"/><path d="M42 24c8-6 20-4 24 6M24 52c-6 8-4 20 6 24"/></g><g fill="#F2CBD8"><circle cx="32" cy="32" r="4.5"/><circle cx="46" cy="26" r="3"/><circle cx="26" cy="46" r="3"/></g></svg>
 <svg class="decor br" viewBox="0 0 120 120" aria-hidden="true"><g fill="none" stroke="#8FB2D6" stroke-width="2" stroke-linecap="round"><path d="M98 72c6 8 6 20-2 26M76 96c-8 4-20 2-24-8"/></g><g fill="#C9DCEE"><circle cx="90" cy="86" r="4.5"/><circle cx="78" cy="94" r="3"/><circle cx="98" cy="74" r="3"/></g></svg>
@@ -475,7 +509,7 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
   </div>
 
   <main id="days"></main>
-  <p class="hint">Sauvegarde automatique dans ce navigateur. Ouvrez le fichier depuis votre ordinateur pour une conservation permanente.</p>
+  <p class="hint">Sauvegarde automatique synchronisée en temps réel via Firebase et conservée localement.</p>
 </div>
 
 <!-- ============ VUE APERÇU / IMPRESSION / PDF ============ -->
@@ -518,7 +552,89 @@ dialog::backdrop{background:rgba(60,45,65,.34);backdrop-filter:blur(2px);}
 
 <script>
 /* ============================================================
-   1. BASE DE CONNAISSANCES — PROGRAMME OFFICIEL (Algérie)
+   1. CONFIGURATION FIREBASE & AUTHENTIFICATION (EMAIL + PIN)
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyDummyKeyReplaceIfNecessary123",
+  authDomain: "cahier-journal-fle.firebaseapp.com",
+  databaseURL: "https://cahier-journal-fle-default-rtdb.firebaseio.com",
+  projectId: "cahier-journal-fle",
+  storageBucket: "cahier-journal-fle.appspot.com",
+  messagingSenderId: "1234567890",
+  appId: "1:1234567890:web:abcdef123456"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
+
+const DEFAULT_PIN = "1234";
+
+function validateAccess() {
+  const email = document.getElementById('email-input').value.trim();
+  const password = document.getElementById('pin-code').value.trim();
+  
+  if (!password) {
+    toast('Veuillez entrer votre mot de passe ou code PIN', 'info');
+    return;
+  }
+
+  // Tenter l'authentification Firebase Auth si un email est saisi
+  if (email) {
+    auth.signInWithEmailAndPassword(email, password)
+      .then((userCredential) => {
+        document.getElementById('auth-screen').style.display = 'none';
+        toast('Connexion réussie', 'ok');
+        syncWithFirebase(userCredential.user.uid);
+      })
+      .catch((error) => {
+        // En cas d'échec ou d'usage hors-ligne, vérifier le PIN dans le Realtime DB ou la clé par défaut
+        checkPinFallback(password);
+      });
+  } else {
+    checkPinFallback(password);
+  }
+}
+
+function checkPinFallback(pinInput) {
+  db.ref('app_access_code').once('value').then(snapshot => {
+    const validPin = snapshot.val() || DEFAULT_PIN;
+    if (pinInput === String(validPin)) {
+      document.getElementById('auth-screen').style.display = 'none';
+      toast('Accès autorisé', 'ok');
+      syncWithFirebase('global_user');
+    } else {
+      toast('Identifiants ou Code PIN incorrects', 'info');
+    }
+  }).catch(() => {
+    if (pinInput === DEFAULT_PIN) {
+      document.getElementById('auth-screen').style.display = 'none';
+      toast('Accès hors-ligne autorisé', 'ok');
+    } else {
+      toast('Code PIN incorrect', 'info');
+    }
+  });
+}
+
+document.getElementById('pin-code').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') validateAccess();
+});
+
+function syncWithFirebase(userId) {
+  const nodeRef = userId ? `cahier_journal_data/${userId}` : 'cahier_journal_data';
+  db.ref(nodeRef).on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      state = data;
+      localStorage.setItem(KEY, JSON.stringify(state));
+      render();
+      setStatus('saved');
+    }
+  });
+}
+
+/* ============================================================
+   2. BASE DE CONNAISSANCES — PROGRAMME OFFICIEL (Algérie)
    ============================================================ */
 const NIV_LABEL = {'1AS':'1re année secondaire (1AS)','2AS':'2e année secondaire (2AS)','3AS':'3e année secondaire (3AS)'};
 
@@ -635,7 +751,7 @@ const PROGRAMS = {
 };
 
 /* ============================================================
-   2. TYPES DE SÉANCE + SUGGESTIONS INTELLIGENTES
+   3. TYPES DE SÉANCE + SUGGESTIONS INTELLIGENTES
    ============================================================ */
 const SEANCES = {
   "Lancement / négociation du projet":{
@@ -743,7 +859,7 @@ function suggestFor(seance,oe){
 }
 
 /* ============================================================
-   3. ÉTAT & PERSISTANCE
+   4. ÉTAT & PERSISTANCE
    ============================================================ */
 const KEY='cahier-journal-fle-v2';
 const $=(s,r=document)=>r.querySelector(s);
@@ -762,14 +878,25 @@ if(!state.days||!state.days.length) state.days=[makeDay(todayISO())];
 
 let saveTimer=null;
 function markDirty(){setStatus('dirty');clearTimeout(saveTimer);saveTimer=setTimeout(persist,600);}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));setStatus('saved');}catch(e){setStatus('saved','Session en cours');}}
+function persist(){
+  try{
+    localStorage.setItem(KEY,JSON.stringify(state));
+    const user = auth.currentUser;
+    const nodeRef = user ? `cahier_journal_data/${user.uid}` : 'cahier_journal_data';
+    db.ref(nodeRef).set(state).then(() => {
+      setStatus('saved');
+    }).catch(err => {
+      setStatus('saved','Enregistré localement');
+    });
+  }catch(e){setStatus('saved','Session en cours');}
+}
 function setStatus(kind,label){const el=$('#status');el.className='status '+(kind==='dirty'?'dirty':'saved');$('#statusTxt').textContent=label||(kind==='dirty'?'Modification…':'Enregistré');}
 
 const findDay=id=>state.days.find(d=>d.id===id);
 const findRow=(dI,rI)=>{const d=findDay(dI);return d&&d.rows.find(r=>r.id===rI);};
 
 /* ============================================================
-   4. COMPOSANT « COMBO » 
+   5. COMPOSANT « COMBO » 
    ============================================================ */
 function optTag(v,sel){return `<option value="${esc(v)}" ${v===sel?'selected':''}>${esc(v)}</option>`;}
 function combo({attrs,value,options,multiline,ph}){
@@ -844,7 +971,7 @@ function getBilanSuggestions(d) {
 }
 
 /* ============================================================
-   5. RENDU DU TABLEAU ET APERÇU UNIQUE
+   6. RENDU DU TABLEAU ET APERÇU UNIQUE
    ============================================================ */
 const daysEl=$('#days');
 
@@ -877,7 +1004,6 @@ function rowHTML(d,r){
 }
 
 function dayHTML(d){
-  // Générer les options dynamiques de l'assistant de bilan
   const suggs = getBilanSuggestions(d);
   const suggOpts = Object.keys(suggs).map(k => {
     return `<optgroup label="${k}">${suggs[k].map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')}</optgroup>`;
@@ -950,7 +1076,6 @@ function renderPreview(daysToRender) {
     let dateStr = formatDayDate(d.date);
     dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
     
-    // Trier chronologiquement
     let sortedRows = [...d.rows].sort((a,b) => (a.heure||'').localeCompare(b.heure||''));
 
     let rowsHtml = sortedRows.map(r => {
@@ -1026,7 +1151,7 @@ function closePreview() {
 }
 
 /* ============================================================
-   6. ÉDITION DANS LE TABLEAU
+   7. ÉDITION DANS LE TABLEAU
    ============================================================ */
 function setRowField(dI,rI,f,v){const r=findRow(dI,rI);if(r)r[f]=v;}
 function onFieldEdit(e){
@@ -1066,7 +1191,7 @@ function rowComboSelect(sel){
 }
 
 /* ============================================================
-   7. ACTIONS GLOBALES
+   8. ACTIONS GLOBALES
    ============================================================ */
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-action]');if(!b)return;
@@ -1080,7 +1205,6 @@ document.addEventListener('click',e=>{
     case 'details':openModal(day,row);break;
     case 'save':persist();toast('Cahier enregistré','ok');break;
     
-    // Actions Aperçu
     case 'preview-all': renderPreview(state.days); break;
     case 'preview-day': 
       const d = findDay(day);
@@ -1090,7 +1214,6 @@ document.addEventListener('click',e=>{
     case 'print-preview': window.print(); break;
     case 'pdf-preview': exportPDF(); break;
     
-    // Ajout d'une suggestion de bilan
     case 'add-sugg':
       const sel = $(`[data-sugg-select="${day}"]`);
       if(sel && sel.value) {
@@ -1099,11 +1222,9 @@ document.addEventListener('click',e=>{
           const val = sel.value;
           const current = txta.value.trim();
           txta.value = current ? current + '\n' + val : val;
-          // Enregistrer la modification
           const dObj = findDay(day);
           if(dObj) dObj.bilan = txta.value;
           markDirty();
-          // Réinitialiser la liste et focaliser la zone de texte
           sel.selectedIndex = 0;
           txta.focus();
         }
@@ -1126,7 +1247,7 @@ function addRow(dI){const d=findDay(dI);if(!d)return;d.rows.push(makeRow());rend
 function delRow(dI,rI){const d=findDay(dI);if(!d)return;d.rows=d.rows.filter(r=>r.id!==rI);if(!d.rows.length)d.rows.push(makeRow());render();persist();}
 
 /* ============================================================
-   8. MODALE — ASSISTANT DE PRÉPARATION
+   9. MODALE — ASSISTANT DE PRÉPARATION
    ============================================================ */
 const modal=$('#modal'),modalBody=$('#modalBody');
 let mDay=null,mRow=null,draft=null;
@@ -1225,7 +1346,7 @@ function saveModal(){
 }
 
 /* ============================================================
-   9. IMPRESSION / PDF / TOAST
+   10. IMPRESSION / PDF / TOAST
    ============================================================ */
 function exportPDF(){
   toast('Choisissez "Enregistrer au format PDF" dans la fenêtre d\'impression','info',3500);
